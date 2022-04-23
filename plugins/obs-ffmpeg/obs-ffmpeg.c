@@ -33,6 +33,8 @@ extern struct obs_encoder_info hevc_nvenc_encoder_info;
 #endif
 extern struct obs_encoder_info svt_av1_encoder_info;
 extern struct obs_encoder_info aom_av1_encoder_info;
+extern struct obs_encoder_info ffmpeg_amf_avc_encoder_info;
+extern struct obs_encoder_info ffmpeg_amf_hevc_encoder_info;
 
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(55, 27, 100)
 #define LIBAVUTIL_VAAPI_AVAILABLE
@@ -292,6 +294,8 @@ static bool vaapi_supported(void)
 #ifdef _WIN32
 extern void jim_nvenc_load(bool h264, bool hevc);
 extern void jim_nvenc_unload(void);
+extern void amf_load(void);
+extern void amf_unload(void);
 #endif
 
 #if ENABLE_FFMPEG_LOGGING
@@ -351,6 +355,11 @@ bool obs_module_load(void)
 			obs_register_encoder(&hevc_nvenc_encoder_info);
 #endif
 	}
+	amf_load();
+	obs_register_encoder(&ffmpeg_amf_avc_encoder_info);
+#if ENABLE_HEVC
+	obs_register_encoder(&ffmpeg_amf_hevc_encoder_info);
+#endif
 #if !defined(_WIN32) && defined(LIBAVUTIL_VAAPI_AVAILABLE)
 	if (vaapi_supported()) {
 		blog(LOG_INFO, "FFMPEG VAAPI supported");
@@ -367,6 +376,7 @@ bool obs_module_load(void)
 
 void obs_module_unload(void)
 {
+	amf_unload();
 #if ENABLE_FFMPEG_LOGGING
 	obs_ffmpeg_unload_logging();
 #endif

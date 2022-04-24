@@ -820,6 +820,27 @@ try {
 	set_hevc_property(enc, OUTPUT_COLOR_PRIMARIES, enc->amf_primaries);
 	set_hevc_property(enc, NOMINAL_RANGE, enc->full_range);
 
+	if (is10bit) {
+		AMDBufferPtr buf;
+		enc->amf_context->AllocBuffer(AMF_MEMORY_HOST,
+					      sizeof(AMFHDRMetadata), &buf);
+		AMFHDRMetadata *md = (AMFHDRMetadata *)buf->GetNative();
+		md->redPrimary[0] = 34000;
+		md->redPrimary[1] = 16000;
+		md->greenPrimary[0] = 13250;
+		md->greenPrimary[1] = 34500;
+		md->bluePrimary[0] = 7500;
+		md->bluePrimary[1] = 3000;
+		md->whitePoint[0] = 15635;
+		md->whitePoint[1] = 16450;
+		md->maxMasteringLuminance =
+			(amf_uint32)obs_get_hdr_nominal_peak() * 10000;
+		md->minMasteringLuminance = 0;
+		md->maxContentLightLevel = 0;
+		md->maxFrameAverageLightLevel = 0;
+		set_hevc_property(enc, INPUT_HDR_METADATA, buf);
+	}
+
 	res = enc->amf_encoder->Init(enc->amf_format, enc->cx, enc->cy);
 	if (res != AMF_OK)
 		throw amf_error("AMFComponent::Init failed", res);

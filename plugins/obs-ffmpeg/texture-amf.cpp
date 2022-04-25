@@ -802,7 +802,11 @@ try {
 	if (!amf_create_encoder(enc))
 		throw "Failed to create encoder";
 
+	/* clang-format off */
 	bool is10bit = enc->amf_format == AMF_SURFACE_P010;
+	bool is_hdr = enc->amf_characteristic == AMF_COLOR_TRANSFER_CHARACTERISTIC_ARIB_STD_B67 ||
+		      enc->amf_characteristic == AMF_COLOR_TRANSFER_CHARACTERISTIC_SMPTE2084;
+	/* clang-format on */
 
 	set_hevc_property(enc, FRAMESIZE, AMFConstructSize(enc->cx, enc->cy));
 	set_hevc_property(enc, USAGE, AMF_VIDEO_ENCODER_USAGE_TRANSCONDING);
@@ -820,7 +824,7 @@ try {
 	set_hevc_property(enc, OUTPUT_COLOR_PRIMARIES, enc->amf_primaries);
 	set_hevc_property(enc, NOMINAL_RANGE, enc->full_range);
 
-	if (is10bit) {
+	if (is_hdr) {
 		AMDBufferPtr buf;
 		enc->amf_context->AllocBuffer(AMF_MEMORY_HOST,
 					      sizeof(AMFHDRMetadata), &buf);

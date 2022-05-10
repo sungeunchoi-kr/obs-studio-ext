@@ -54,9 +54,16 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <filesystem>
+
+// _chdir
+#include <direct.h>
+#define chdir _chdir
 #else
 #include <signal.h>
 #include <pthread.h>
+
+// chdir
+#include <unistd.h>
 #endif
 
 #if !defined(_WIN32) && !defined(__APPLE__)
@@ -2948,6 +2955,10 @@ int main(int argc, char *argv[])
 			if (++i < argc) {
 				// format: Video,OutputCX,integer,1920 with lines separated by ';'.
 				_config_override_str = argv[i];
+			}
+		} else if (arg_is(argv[i], "--cwd", nullptr)) {
+			if (++i < argc) {
+				chdir(argv[i]);
 			}
 		}
 	}

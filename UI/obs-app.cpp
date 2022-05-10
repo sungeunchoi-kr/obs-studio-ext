@@ -95,6 +95,17 @@ string opt_starting_collection;
 string opt_starting_profile;
 string opt_starting_scene;
 
+// EXTENSION: custom flags
+// Set with command line flag --run-batch. Sets the hard-coded batch function to run
+// upon program launch, e.g. "screen-recording". The functions are routed at 
+// `OBSBasic::RunBatch` and the batch functions are defined in the `OBSBasic` class.
+string _run_batch_name;
+
+// Set with command line flag --config-override. Used to override the "basicConfig"
+// system-wide configuration object in the OBSBasic class. The raw string is stored
+// here and is parsed and used in OBSBasic::OBSInit().
+string _config_override_str;
+
 bool restart = false;
 
 QPointer<OBSLogViewer> obsLogViewer;
@@ -1473,12 +1484,18 @@ bool OBSApp::OBSInit()
 
 	setQuitOnLastWindowClosed(false);
 
-	mainWindow = new OBSBasic();
+	auto mainWindow_basic = new OBSBasic();
+	mainWindow = mainWindow_basic;
 
 	mainWindow->setAttribute(Qt::WA_DeleteOnClose, true);
 	connect(mainWindow, SIGNAL(destroyed()), this, SLOT(quit()));
 
-	mainWindow->OBSInit();
+	mainWindow_basic->OBSInit(_config_override_str);
+
+	// process _run_batch_name now
+	if (_run_batch_name.size() > 0) {
+		mainWindow_basic->RunBatch(_run_batch_name);
+	}
 
 	connect(this, &QGuiApplication::applicationStateChanged,
 		[this](Qt::ApplicationState state) {
@@ -2347,39 +2364,75 @@ static void load_debug_privilege(void)
 
 #define CONFIG_PATH BASE_PATH "/config"
 
+#define CONFIG_PATH_MAX_LEN 1024
+char _configPathRoot[CONFIG_PATH_MAX_LEN] = "";
+
+/**
+ * Originally, GetConfigPath and GetConfigPathPtr was hard-coded to return the program
+ * data directory as chosen by the OS. Use this function to configure a different
+ * directory.
+ *
+ * The function sets the _configPathRoot variable which is used by GetConfigPath and 
+ * GetConfigPathPtr, if defined. Otherwise, defaults to the original behavior.
+ */
+void SetConfigPathRoot(char* path)
+{
+	strcpy_s(_configPathRoot, CONFIG_PATH_MAX_LEN, path);
+	return;
+}
+
 int GetConfigPath(char *path, size_t size, const char *name)
 {
+	if (strlen(_configPathRoot) == 0) {
+
 #ifdef LINUX_PORTABLE
-	if (portable_mode) {
-		if (name && *name) {
-			return snprintf(path, size, CONFIG_PATH "/%s", name);
+		if (portable_mode) {
+			if (name && *name) {
+				return snprintf(path, size, CONFIG_PATH "/%s", name);
+			} else {
+				return snprintf(path, size, CONFIG_PATH);
+			}
 		} else {
-			return snprintf(path, size, CONFIG_PATH);
+			return os_get_config_path(path, size, name);
 		}
-	} else {
-		return os_get_config_path(path, size, name);
-	}
 #else
-	return os_get_config_path(path, size, name);
+
+		return os_get_config_path(path, size, name);
+	} else {
+		snprintf(path, size, _configPathRoot);
+		strcat_s(path, size, name);
+		return strlen(path);
+	}
 #endif
 }
 
 char *GetConfigPathPtr(const char *name)
 {
+	if (strlen(_configPathRoot) == 0) {
 #ifdef LINUX_PORTABLE
-	if (portable_mode) {
-		char path[512];
+		if (portable_mode) {
+			char path[512];
 
-		if (snprintf(path, sizeof(path), CONFIG_PATH "/%s", name) > 0) {
-			return bstrdup(path);
+			if (snprintf(path, sizeof(path), CONFIG_PATH "/%s", name) > 0) {
+				return bstrdup(path);
+			} else {
+				return NULL;
+			}
 		} else {
-			return NULL;
+			return os_get_config_path_ptr(name);
 		}
-	} else {
-		return os_get_config_path_ptr(name);
-	}
 #else
-	return os_get_config_path_ptr(name);
+
+		return os_get_config_path_ptr(name);
+	} else {
+		char buf[CONFIG_PATH_MAX_LEN];
+		strcpy_s(buf, 1024, _configPathRoot);
+		strcat(buf, name);
+		char* ptr = alloc_bmem_cstr(buf);
+
+		return ptr;
+	}
+
 #endif
 }
 
@@ -2784,6 +2837,9 @@ int main(int argc, char *argv[])
 
 	obs_set_cmdline_args(argc, argv);
 
+	// buffer for the `--config-root` flag
+	char* _config_root_opt = nullptr;
+
 	for (int i = 1; i < argc; i++) {
 		if (arg_is(argv[i], "--portable", "-p")) {
 			portable_mode = true;
@@ -2879,6 +2935,20 @@ int main(int argc, char *argv[])
 			std::cout << "OBS Studio - "
 				  << App()->GetVersionString() << "\n";
 			exit(0);
+		// --- extended command line args --- //
+		} else if (arg_is(argv[i], "--config-root", nullptr)) {
+			if (++i < argc) {
+				_config_root_opt = argv[i];
+			}
+		} else if (arg_is(argv[i], "--run-batch", nullptr)) {
+			if (++i < argc) {
+				_run_batch_name = argv[i];
+			}
+		} else if (arg_is(argv[i], "--config-override", nullptr)) {
+			if (++i < argc) {
+				// format: Video,OutputCX,integer,1920 with lines separated by ';'.
+				_config_override_str = argv[i];
+			}
 		}
 	}
 
@@ -2905,6 +2975,11 @@ int main(int argc, char *argv[])
 				       "/disable_missing_files_check.txt");
 	}
 #endif
+
+	// EXTENSION: override config path if defined.
+	if (_config_root_opt) {
+		SetConfigPathRoot(_config_root_opt);
+	}
 
 	upgrade_settings();
 

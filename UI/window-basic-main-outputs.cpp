@@ -474,6 +474,7 @@ SimpleOutput::SimpleOutput(OBSBasic *main_) : BasicOutputHandler(main_)
 			      "(simple output)";
 	}
 
+	// Just UI stuff; does not affect recording.
 	startRecording.Connect(obs_output_get_signal_handler(fileOutput),
 			       "start", OBSStartRecording, this);
 	stopRecording.Connect(obs_output_get_signal_handler(fileOutput), "stop",
@@ -720,6 +721,9 @@ void SimpleOutput::UpdateRecordingSettings()
 
 inline void SimpleOutput::SetupOutputs()
 {
+	// this block is needed for recording even if it looks like it's setting
+	// the `videoStreaming` obj, which is not `videoRecording`. This is especially
+	// true when loading from an empty profile.
 	SimpleOutput::Update();
 	obs_encoder_set_video(videoStreaming, obs_get_video());
 	obs_encoder_set_audio(aacStreaming, obs_get_audio());
@@ -730,7 +734,8 @@ inline void SimpleOutput::SetupOutputs()
 			obs_output_set_media(fileOutput, obs_get_video(),
 					     obs_get_audio());
 		} else {
-			obs_encoder_set_video(videoRecording, obs_get_video());
+			video_t* video = obs_get_video();
+			obs_encoder_set_video(videoRecording, video);
 			obs_encoder_set_audio(aacRecording, obs_get_audio());
 		}
 	}

@@ -47,7 +47,8 @@ bool obs_module_load(void)
 #ifdef VIRTUALCAM_AVAILABLE
 	obs_register_output(&virtualcam_info);
 
-	bool installed = vcam_installed(false);
+	bool searchFor64BitDrivers = true;
+	bool installed = vcam_installed(searchFor64BitDrivers);
 #else
 	bool installed = false;
 #endif

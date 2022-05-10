@@ -1159,6 +1159,7 @@ public:
 	virtual ~OBSBasic();
 
 	virtual void OBSInit() override;
+	void OBSInit(std::string configOverrideStr);
 
 	virtual config_t *Config() const override;
 
@@ -1166,6 +1167,11 @@ public:
 				   const char *file) const override;
 
 	static void InitBrowserPanelSafeBlock();
+
+	// EXTENSION
+	std::vector<std::string> string_split(const std::string &s, char delim);
+	void BatchScreenRecorder();
+	void RunBatch(std::string name);
 
 private:
 	std::unique_ptr<Ui::OBSBasic> ui;

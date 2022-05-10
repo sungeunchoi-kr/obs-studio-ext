@@ -193,6 +193,8 @@ signals:
 	void StyleChanged();
 };
 
+void SetConfigPathRoot(char* path);
+
 int GetConfigPath(char *path, size_t size, const char *name);
 char *GetConfigPathPtr(const char *name);
 

@@ -383,6 +383,8 @@ obs_source_create_internal(const char *id, const char *name,
 		}
 	}
 
+	// obs_data_set_int(source->context.settings, "monitor", 1);
+
 	if (!obs_source_init(source))
 		goto fail;
 

@@ -807,3 +807,14 @@ char *os_generate_formatted_filename(const char *extension, bool space,
 
 	return sf.array;
 }
+
+/**
+ * Use to allocate a string using bmalloc. This is a requirement for
+ * GetConfigPathPtr(); string allocated any other way throws an exception when used.
+ */
+char* alloc_bmem_cstr(const char* cstr) {
+	size_t len = strlen(cstr);
+	char* dest = bmalloc(len + 1);
+	strcpy_s(dest, len + 1, cstr);
+	return dest;
+}

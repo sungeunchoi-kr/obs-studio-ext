@@ -3023,3 +3023,4 @@ bool obs_weak_object_references_object(obs_weak_object_t *weak,
 {
 	return weak && object && weak->object == object;
 }
+

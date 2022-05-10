@@ -1730,32 +1730,153 @@ static void AddProjectorMenuMonitors(QMenu *parent, QObject *target,
 	"Failed to initialize video.  Your GPU may not be supported, " \
 	"or your graphics drivers may need to be updated."
 
-void OBSBasic::OBSInit()
+struct AddSourceData {
+	obs_source_t *source;
+	bool visible;
+	obs_transform_info *transform = nullptr;
+	obs_sceneitem_crop *crop = nullptr;
+	obs_blending_method *blend_method = nullptr;
+	obs_blending_type *blend_mode = nullptr;
+};
+static void AddSourceL(void *_data, obs_scene_t *scene)
+{
+	AddSourceData *data = (AddSourceData *)_data;
+	obs_sceneitem_t *sceneitem;
+
+	sceneitem = obs_scene_add(scene, data->source);
+
+	if (data->transform != nullptr)
+		obs_sceneitem_set_info(sceneitem, data->transform);
+	if (data->crop != nullptr)
+		obs_sceneitem_set_crop(sceneitem, data->crop);
+	if (data->blend_method != nullptr)
+		obs_sceneitem_set_blending_method(sceneitem,
+						  *data->blend_method);
+	if (data->blend_mode != nullptr)
+		obs_sceneitem_set_blending_mode(sceneitem, *data->blend_mode);
+
+	obs_sceneitem_set_visible(sceneitem, data->visible);
+}
+
+void OBSBasic::RunBatch(std::string name) {
+	if (name == "screen-recording") {
+		this->BatchScreenRecorder();
+	}
+}
+
+void OBSBasic::BatchScreenRecorder()
+{
+	OBSSourceAutoRelease cutTransition = obs_source_create_private(
+		"cut_transition", "Cut Transition", NULL);
+
+	/* docs: Sets the primary output source for a channel. */
+	obs_set_output_source(0, cutTransition);
+
+	OBSSceneAutoRelease scene = obs_scene_create("Muse Scene");
+
+	const char *v_id = obs_get_latest_input_type_id("monitor_capture"); // ==> "v_id == monitor_capture"
+	OBSSourceAutoRelease source = obs_source_create(v_id, "Muse Display Capture", NULL, nullptr);
+
+	obs_data_t* settings = obs_data_create();
+
+	// Where we can change the monitor index.
+	uint64_t monitorIndex = config_get_uint(basicConfig, "SimpleOutput", "DisplayIndex");
+	if (monitorIndex > 0 && monitorIndex < 16) {
+		obs_data_set_int(settings, "monitor", (int)monitorIndex);
+		obs_source_update(source, settings);
+	}
+
+	if (source) {
+		AddSourceData data;
+		data.source = source;
+		data.visible = true;
+
+		obs_enter_graphics();
+		obs_scene_atomic_update(scene, AddSourceL, &data);
+		obs_leave_graphics();
+
+		this->StartRecording();
+	}
+}
+
+vector<std::string> OBSBasic::string_split(const std::string &s, char delim)
+{
+	vector<std::string> result;
+	std::stringstream ss(s);
+	std::string item;
+
+	while (getline(ss, item, delim)) {
+		result.push_back(item);
+	}
+
+	return result;
+}
+
+void OBSBasic::OBSInit(std::string configOverrideStr)
 {
 	ProfileScope("OBSBasic::OBSInit");
 
-	const char *sceneCollection = config_get_string(
-		App()->GlobalConfig(), "Basic", "SceneCollectionFile");
-	char savePath[1024];
-	char fileName[1024];
+	// const char *sceneCollection = config_get_string(
+	// 	App()->GlobalConfig(), "Basic", "SceneCollectionFile");
+	// char savePath[1024];
+	// char fileName[1024];
 	int ret;
 
-	if (!sceneCollection)
-		throw "Failed to get scene collection name";
+	// if (!sceneCollection)
+	// 	throw "Failed to get scene collection name";
 
-	ret = snprintf(fileName, sizeof(fileName),
-		       "obs-studio/basic/scenes/%s.json", sceneCollection);
-	if (ret <= 0)
-		throw "Failed to create scene collection file name";
+	// ret = snprintf(fileName, sizeof(fileName),
+	// 	       "obs-studio/basic/scenes/%s.json", sceneCollection);
+	// if (ret <= 0)
+	// 	throw "Failed to create scene collection file name";
 
-	ret = GetConfigPath(savePath, sizeof(savePath), fileName);
-	if (ret <= 0)
-		throw "Failed to get scene collection json file path";
+	// ret = GetConfigPath(savePath, sizeof(savePath), fileName);
+	// if (ret <= 0)
+	// 	throw "Failed to get scene collection json file path";
 
 	if (!InitBasicConfig())
 		throw "Failed to load basic.ini";
 	if (!ResetAudio())
 		throw "Failed to initialize audio";
+
+	// --- custom config override --- //
+	if (configOverrideStr.size() > 0) {
+		// format: Video,OutputCX,integer,1920 with lines separated by ';'.
+		printf("[config-override] parsing %s", configOverrideStr.c_str());
+		vector<std::string> lines = string_split(configOverrideStr, ';');
+		for (auto line : lines) {
+			auto parts = string_split(line, ',');
+			if (parts.size() >= 4) {
+				printf("[config-override] parsing line \"%s\":", line.c_str());
+				string sectionName = parts[0];
+				string propertyName = parts[1];
+				string type = parts[2];
+				string value = parts[3];
+
+				if (type == "uint") {
+					int val_int = std::stoi(value);
+					printf("[config-override] config_set_uint with value=%d", val_int);
+					config_set_uint(basicConfig, sectionName.c_str(), propertyName.c_str(), val_int);
+				} else if (type == "string") {
+					printf("[config-override] config_set_string with value=%s", value.c_str());
+					config_set_string(basicConfig, sectionName.c_str(), propertyName.c_str(), value.c_str());
+				}
+			} else {
+				printf("[config-override] skipping line \"%s\" because it does not have 4 parts.", line.c_str());
+			}
+		}
+	} else {
+		printf("[config-override] no config-override set.");
+	}
+
+	// config_set_uint(basicConfig, "Video", "OutputCX", 1920); // what actually causes the effect.
+	// config_set_uint(basicConfig, "Video", "OutputCY", 1080);
+	// config_set_uint(basicConfig, "Output", "FilenameFormatting", "%CCYY-%MM-%DD %hh-%mm-%ss");
+	// `FPSType` selects between the dropdown values "Common FPS Values",
+	// "Integer FPS Values", and "Fractional FPS Values".
+	// config_set_uint(basicConfig, "Video", "FPSType", 1);
+	// config_set_uint(basicConfig, "Video", "FPSInt", 5);
+	// config_set_string(basicConfig, "SimpleOutput", "FilePath", "C:\\Users\\sung");
 
 	ret = ResetVideo();
 
@@ -1874,7 +1995,7 @@ void OBSBasic::OBSInit()
 	{
 		ProfileScope("OBSBasic::Load");
 		disableSaving--;
-		Load(savePath);
+		// Load(savePath);
 		disableSaving++;
 	}
 
@@ -2085,6 +2206,11 @@ void OBSBasic::OBSInit()
 	OnFirstLoad();
 
 	activateWindow();
+}
+
+void OBSBasic::OBSInit()
+{
+	this->OBSInit("");
 }
 
 void OBSBasic::OnFirstLoad()

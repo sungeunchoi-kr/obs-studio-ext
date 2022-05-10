@@ -1,3 +1,14 @@
+OBS Studio fork with custom extensions
+======================================
+
+Windows x64 build:
+
+cmake -G "Visual Studio 16 2019" -A x64 -S . -B build -D CMAKE_PREFIX_PATH=D:/sung/projects/obs/obs-studio/deps -D VIRTUALCAM_GUID=c4784c81-151a-44cc-bbcc-6a470f8fa4d3 -D CMAKE_CONFIGURATION_TYPES="Debug;Release" -D ENABLE_BROWSER_SOURCE=NO -D ENABLE_SCRIPTING=NO -D ENABLE_BROWSER_SHARED_TEXTURE=NO -D ENABLE_VLC=NO
+cmake --build .\build --config Release
+
+
+
+
 OBS Studio <https://obsproject.com>
 ===================================
 

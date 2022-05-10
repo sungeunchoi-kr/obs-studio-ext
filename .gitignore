@@ -22,6 +22,7 @@
 .ninja*
 .dirstamp
 /cmake/.CMakeBuildNumber
+/deps
 
 #xcode
 *.xcodeproj/

@@ -1759,12 +1759,16 @@ static void AddSourceL(void *_data, obs_scene_t *scene)
 }
 
 void OBSBasic::RunBatch(std::string name) {
-	if (name == "screen-recording") {
+	if (name == "screen-sharing") {
+		this->BatchScreenSharing();
+	} else if (name == "screen-recording") {
 		this->BatchScreenRecorder();
+	} else if (name == "setup-canvas") {
+		this->BatchSetupCanvas();
 	}
 }
 
-void OBSBasic::BatchScreenRecorder()
+void OBSBasic::BatchSetupCanvas()
 {
 	OBSSourceAutoRelease cutTransition = obs_source_create_private(
 		"cut_transition", "Cut Transition", NULL);
@@ -1794,9 +1798,28 @@ void OBSBasic::BatchScreenRecorder()
 		obs_enter_graphics();
 		obs_scene_atomic_update(scene, AddSourceL, &data);
 		obs_leave_graphics();
-
-		this->StartRecording();
 	}
+}
+
+void OBSBasic::BatchScreenRecorder()
+{
+	this->BatchSetupCanvas();
+
+	// Needed especially when starting the app with '--minimize-to-tray'.
+	EnablePreviewDisplay(true);
+
+	this->StartRecording();
+}
+
+void OBSBasic::BatchScreenSharing()
+{
+	this->BatchSetupCanvas();
+
+	QMetaObject::invokeMethod(this, "StartVirtualCam",
+				  Qt::QueuedConnection);
+
+	// Needed especially when starting the app with '--minimize-to-tray'.
+	EnablePreviewDisplay(true);
 }
 
 vector<std::string> OBSBasic::string_split(const std::string &s, char delim)

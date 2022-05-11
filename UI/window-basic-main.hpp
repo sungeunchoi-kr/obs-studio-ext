@@ -1170,7 +1170,9 @@ public:
 
 	// EXTENSION
 	std::vector<std::string> string_split(const std::string &s, char delim);
+	void BatchSetupCanvas();
 	void BatchScreenRecorder();
+	void BatchScreenSharing();
 	void RunBatch(std::string name);
 
 private:

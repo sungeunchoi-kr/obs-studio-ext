@@ -180,7 +180,7 @@ typedef enum {
 	switch (address.mSelector) {
 	case kCMIOObjectPropertyName:
 		*static_cast<CFStringRef *>(data) =
-			CFSTR("OBS Virtual Camera Plugin");
+			CFSTR("esum Virtual Camera Plugin");
 		*dataUsed = sizeof(CFStringRef);
 		return;
 	default:

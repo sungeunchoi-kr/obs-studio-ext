@@ -11,16 +11,16 @@ goto checkAdmin
 		goto end
 	)
 
-:checkDLL
-	echo Checking for 32-bit Virtual Cam registration...
-	reg query "HKLM\SOFTWARE\Classes\WOW6432Node\CLSID\{@VIRTUALCAM_GUID@}" >nul 2>&1
-	if %errorLevel% == 0 (
-		echo 32-bit Virtual Cam found, skipping install...
-		echo.
-	) else (
-		echo 32-bit Virtual Cam not found, installing...
-		goto install32DLL
-	)
+:: :checkDLL
+:: 	echo Checking for 32-bit Virtual Cam registration...
+:: 	reg query "HKLM\SOFTWARE\Classes\WOW6432Node\CLSID\{@VIRTUALCAM_GUID@}" >nul 2>&1
+:: 	if %errorLevel% == 0 (
+:: 		echo 32-bit Virtual Cam found, skipping install...
+:: 		echo.
+:: 	) else (
+:: 		echo 32-bit Virtual Cam not found, installing...
+:: 		goto install32DLL
+:: 	)
 
 :CheckDLLContinue
 	echo Checking for 64-bit Virtual Cam registration...

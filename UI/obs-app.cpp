@@ -2384,13 +2384,23 @@ char _configPathRoot[CONFIG_PATH_MAX_LEN] = "";
  */
 void SetConfigPathRoot(char* path)
 {
-	strcpy_s(_configPathRoot, CONFIG_PATH_MAX_LEN, path);
+	if (strlen(path) > 0) {
+		memset(_configPathRoot, 0, sizeof(char));
+		// leave space for \0 and potential '/'.
+		strncpy(_configPathRoot, path, CONFIG_PATH_MAX_LEN - 2);
+
+		// append "/" at the end if does not exist.
+		char last = path[strlen(path) - 1];
+		if (last != '/' || last != '\\') {
+			strcat(_configPathRoot, "/");
+		}
+	}
 	return;
 }
 
 int GetConfigPath(char *path, size_t size, const char *name)
 {
-	if (strlen(_configPathRoot) == 0) {
+	if (strlen(_configPathRoot) == 0) { // if _configPathRoot not set
 
 #ifdef LINUX_PORTABLE
 		if (portable_mode) {
@@ -2406,8 +2416,8 @@ int GetConfigPath(char *path, size_t size, const char *name)
 
 		return os_get_config_path(path, size, name);
 	} else {
-		snprintf(path, size, _configPathRoot);
-		strcat_s(path, size, name);
+		snprintf(path, size, "%s", _configPathRoot);
+		strcat(path, name);
 		return strlen(path);
 	}
 #endif
@@ -2415,7 +2425,7 @@ int GetConfigPath(char *path, size_t size, const char *name)
 
 char *GetConfigPathPtr(const char *name)
 {
-	if (strlen(_configPathRoot) == 0) {
+	if (strlen(_configPathRoot) == 0) {  // if _configPathRoot not set
 #ifdef LINUX_PORTABLE
 		if (portable_mode) {
 			char path[512];
@@ -2433,7 +2443,7 @@ char *GetConfigPathPtr(const char *name)
 		return os_get_config_path_ptr(name);
 	} else {
 		char buf[CONFIG_PATH_MAX_LEN];
-		strcpy_s(buf, 1024, _configPathRoot);
+		strcpy(buf, _configPathRoot);
 		strcat(buf, name);
 		char* ptr = alloc_bmem_cstr(buf);
 

@@ -815,6 +815,6 @@ char *os_generate_formatted_filename(const char *extension, bool space,
 char* alloc_bmem_cstr(const char* cstr) {
 	size_t len = strlen(cstr);
 	char* dest = bmalloc(len + 1);
-	strcpy_s(dest, len + 1, cstr);
+	strcpy(dest, cstr);
 	return dest;
 }

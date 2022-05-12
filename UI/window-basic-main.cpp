@@ -1778,8 +1778,18 @@ void OBSBasic::BatchSetupCanvas()
 
 	OBSSceneAutoRelease scene = obs_scene_create("Muse Scene");
 
-	const char *v_id = obs_get_latest_input_type_id("monitor_capture"); // ==> "v_id == monitor_capture"
-	OBSSourceAutoRelease source = obs_source_create(v_id, "Muse Display Capture", NULL, nullptr);
+	const char *v_id_1 = obs_get_latest_input_type_id("monitor_capture");
+	const char *v_id_2 = obs_get_latest_input_type_id("display_capture");
+
+	OBSSourceAutoRelease source;
+
+	if (v_id_1 == nullptr && v_id_2 == nullptr) {
+		return;
+	} else if (v_id_1 == nullptr) {
+		source = obs_source_create(v_id_2, "Muse Display Capture", NULL, nullptr);
+	} else if (v_id_2 == nullptr) {
+		source = obs_source_create(v_id_1, "Muse Display Capture", NULL, nullptr);
+	}
 
 	obs_data_t* settings = obs_data_create();
 
@@ -1855,7 +1865,7 @@ void OBSBasic::OBSInit(std::string configOverrideStr)
 
 	// ret = GetConfigPath(savePath, sizeof(savePath), fileName);
 	// if (ret <= 0)
-	// 	throw "Failed to get scene collection json file path";
+	//   throw "Failed to get scene collection json file path";
 
 	if (!InitBasicConfig())
 		throw "Failed to load basic.ini";

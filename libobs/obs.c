@@ -1550,7 +1550,7 @@ const char *obs_get_latest_input_type_id(const char *unversioned_id)
 		}
 	}
 
-	assert(!!latest);
+	// assert(!!latest);
 	if (!latest)
 		return NULL;
 

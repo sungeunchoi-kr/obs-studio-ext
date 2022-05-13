@@ -1044,6 +1044,33 @@ bool SimpleOutput::StartRecording()
 	UpdateRecording();
 	if (!ConfigureRecording(false))
 		return false;
+	
+	// Write recording info file.
+	char infoFilePath[1024] = { 0 };
+	GetConfigPath(infoFilePath, 1024, "curr-obs-recording.info");
+	// create file containing timestamp.
+	FILE *fp = fopen(infoFilePath, "w");
+	if (fp != NULL) {
+		struct timespec ts;
+		timespec_get(&ts, TIME_UTC);
+		char b[1024]; // the final buffer that will get written
+		char timestamp[128];
+		
+		// write the nanosecond portion
+		char nsec[128];
+		sprintf(nsec, ".%09ldZ", ts.tv_nsec);
+		
+		// write timestamp
+		strftime(timestamp, sizeof timestamp, "%FT%T", gmtime(&ts.tv_sec));
+		strcat(timestamp, nsec);
+		
+		sprintf(b, "video.start_ts=");
+		strcat(b, timestamp);
+		
+		fputs(b, fp);
+		fclose(fp);
+	}
+	
 	if (!obs_output_start(fileOutput)) {
 		QString error_reason;
 		const char *error = obs_output_get_last_error(fileOutput);

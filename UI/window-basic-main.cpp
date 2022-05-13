@@ -1881,18 +1881,33 @@ void OBSBasic::OBSInit(std::string configOverrideStr)
 			auto parts = string_split(line, ',');
 			if (parts.size() >= 4) {
 				printf("[config-override] parsing line \"%s\":", line.c_str());
-				string sectionName = parts[0];
-				string propertyName = parts[1];
-				string type = parts[2];
-				string value = parts[3];
+				string configName = parts[0];
+				string sectionName = parts[1];
+				string propertyName = parts[2];
+				string type = parts[3];
+				string value = parts[4];
 
+				config_t* config = NULL;
+				if (configName == "globalConfig") {
+					config = App()->GlobalConfig();
+				} else if (configName == "basicConfig") {
+					config = basicConfig;
+				} else {
+					config = basicConfig;
+				}
+				
 				if (type == "uint") {
 					int val_int = std::stoi(value);
 					printf("[config-override] config_set_uint with value=%d", val_int);
-					config_set_uint(basicConfig, sectionName.c_str(), propertyName.c_str(), val_int);
+					config_set_uint(config, sectionName.c_str(), propertyName.c_str(), val_int);
 				} else if (type == "string") {
 					printf("[config-override] config_set_string with value=%s", value.c_str());
-					config_set_string(basicConfig, sectionName.c_str(), propertyName.c_str(), value.c_str());
+					config_set_string(config, sectionName.c_str(), propertyName.c_str(), value.c_str());
+				} else if (type == "bool") {
+					int val_int = std::stoi(value);
+					bool val = val_int <= 0 ? false : true;
+					printf("[config-override] config_set_bool with value=%s", value.c_str());
+					config_set_bool(config, sectionName.c_str(), propertyName.c_str(), val);
 				}
 			} else {
 				printf("[config-override] skipping line \"%s\" because it does not have 4 parts.", line.c_str());

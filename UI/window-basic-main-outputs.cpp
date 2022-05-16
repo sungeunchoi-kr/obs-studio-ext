@@ -1044,10 +1044,24 @@ bool SimpleOutput::StartRecording()
 	UpdateRecording();
 	if (!ConfigureRecording(false))
 		return false;
-	
+
+	if (!obs_output_start(fileOutput)) {
+		QString error_reason;
+		const char *error = obs_output_get_last_error(fileOutput);
+		if (error)
+			error_reason = QT_UTF8(error);
+		else
+			error_reason = QTStr("Output.StartFailedGeneric");
+		QMessageBox::critical(main,
+				      QTStr("Output.StartRecordingFailed"),
+				      error_reason);
+		return false;
+	}
+
 	// Write recording info file.
 	char infoFilePath[1024] = { 0 };
 	GetConfigPath(infoFilePath, 1024, "curr-obs-recording.info");
+
 	// create file containing timestamp.
 	FILE *fp = fopen(infoFilePath, "w");
 	if (fp != NULL) {
@@ -1069,19 +1083,6 @@ bool SimpleOutput::StartRecording()
 		
 		fputs(b, fp);
 		fclose(fp);
-	}
-	
-	if (!obs_output_start(fileOutput)) {
-		QString error_reason;
-		const char *error = obs_output_get_last_error(fileOutput);
-		if (error)
-			error_reason = QT_UTF8(error);
-		else
-			error_reason = QTStr("Output.StartFailedGeneric");
-		QMessageBox::critical(main,
-				      QTStr("Output.StartRecordingFailed"),
-				      error_reason);
-		return false;
 	}
 
 	return true;

@@ -2254,6 +2254,10 @@ void OBSBasic::OBSInit(std::string configOverrideStr)
 	OnFirstLoad();
 
 	activateWindow();
+
+	fflush(stderr);
+	fprintf(stderr, "{\"event\":\"obs_init_done\"}\n");
+	fflush(stderr);
 }
 
 void OBSBasic::OBSInit()
@@ -7637,10 +7641,12 @@ void OBSBasic::ReplayBufferStop(int code)
 
 void OBSBasic::StartVirtualCam()
 {
-	if (!outputHandler || !outputHandler->virtualCam)
+	if (!outputHandler || !outputHandler->virtualCam) {
 		return;
-	if (outputHandler->VirtualCamActive())
+	}
+	if (outputHandler->VirtualCamActive()) {
 		return;
+	}
 	if (disableOutputsRef)
 		return;
 
@@ -7648,6 +7654,10 @@ void OBSBasic::StartVirtualCam()
 
 	if (!outputHandler->StartVirtualCam()) {
 		vcamButton->setChecked(false);
+	} else {
+		fflush(stderr);
+		fprintf(stderr, "{\"event\":\"virtual_cam_start\"}\n");
+		fflush(stderr);
 	}
 }
 

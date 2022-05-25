@@ -1058,10 +1058,6 @@ bool SimpleOutput::StartRecording()
 		return false;
 	}
 
-	// Write recording info file.
-	char infoFilePath[1024] = { 0 };
-	GetConfigPath(infoFilePath, 1024, "curr-obs-recording.info");
-
 	// generate timestamp
 	struct timespec ts;
 	timespec_get(&ts, TIME_UTC);
@@ -1074,18 +1070,6 @@ bool SimpleOutput::StartRecording()
 	// write timestamp
 	strftime(timestamp, sizeof timestamp, "%FT%T", gmtime(&ts.tv_sec));
 	strcat(timestamp, nsec);
-
-	// create file containing timestamp.
-	FILE *fp = fopen(infoFilePath, "w");
-	if (fp != NULL) {
-		char b[1024]; // the final buffer that will get written
-		
-		sprintf(b, "video.start_ts=");
-		strcat(b, timestamp);
-		
-		fputs(b, fp);
-		fclose(fp);
-	}
 
 	fflush(stderr);
 	fprintf(stderr, "{\"event\":\"desktop_recording_start\", \"video.start_ts\":\"%s\"}\n", timestamp);

@@ -2092,11 +2092,19 @@ void OBSBasic::OBSInit(std::string configOverrideStr)
 				 sysTrayEnabled &&
 				 (opt_minimize_tray || sysTrayWhenStarted);
 
+	bool hideWindowOnStartOverride = config_get_bool(
+		App()->GlobalConfig(), "BasicWindow", "HideWindowOnStartOverride");
+
+	if (hideWindowOnStartOverride) {
+		hideWindowOnStart = true;
+	}
+
 #ifdef _WIN32
 	SetWin32DropStyle(this);
 
-	if (!hideWindowOnStart)
+	if (!hideWindowOnStart) {
 		show();
+	}
 #endif
 
 	bool alwaysOnTop = config_get_bool(App()->GlobalConfig(), "BasicWindow",
@@ -2120,8 +2128,9 @@ void OBSBasic::OBSInit(std::string configOverrideStr)
 	}
 
 #ifndef _WIN32
-	if (!hideWindowOnStart)
+	if (!hideWindowOnStart) {
 		show();
+	}
 #endif
 
 	/* setup stats dock */

@@ -2085,7 +2085,7 @@ void OBSBasic::OBSInit(std::string configOverrideStr)
 	/* Show the main window, unless the tray icon isn't available
 	 * or neither the setting nor flag for starting minimized is set. */
 	bool sysTrayEnabled = config_get_bool(App()->GlobalConfig(),
-					      "BasicWindow", "sysTrayEnabled");
+					      "BasicWindow", "SysTrayEnabled");
 	bool sysTrayWhenStarted = config_get_bool(
 		App()->GlobalConfig(), "BasicWindow", "SysTrayWhenStarted");
 	bool hideWindowOnStart = QSystemTrayIcon::isSystemTrayAvailable() &&

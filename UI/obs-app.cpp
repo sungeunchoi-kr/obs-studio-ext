@@ -2371,8 +2371,7 @@ static void load_debug_privilege(void)
 
 #define CONFIG_PATH BASE_PATH "/config"
 
-#define CONFIG_PATH_MAX_LEN 1024
-char _configPathRoot[CONFIG_PATH_MAX_LEN] = "";
+std::string _configPathRoot = "";
 
 /**
  * Originally, GetConfigPath and GetConfigPathPtr was hard-coded to return the program
@@ -2382,17 +2381,13 @@ char _configPathRoot[CONFIG_PATH_MAX_LEN] = "";
  * The function sets the _configPathRoot variable which is used by GetConfigPath and 
  * GetConfigPathPtr, if defined. Otherwise, defaults to the original behavior.
  */
-void SetConfigPathRoot(char* path)
+void SetConfigPathRoot(const std::string& path)
 {
-	if (strlen(path) > 0) {
-		memset(_configPathRoot, 0, sizeof(char));
-		// leave space for \0 and potential '/'.
-		strncpy(_configPathRoot, path, CONFIG_PATH_MAX_LEN - 2);
-
-		// append "/" at the end if does not exist.
-		char last = path[strlen(path) - 1];
-		if (last != '/' || last != '\\') {
-			strcat(_configPathRoot, "/");
+	if (!path.empty()) {
+		if (path.back() == '/' || path.back() == '\\') {
+			_configPathRoot = path;
+		} else {
+			_configPathRoot = path + "/";
 		}
 	}
 	return;
@@ -2400,7 +2395,7 @@ void SetConfigPathRoot(char* path)
 
 int GetConfigPath(char *path, size_t size, const char *name)
 {
-	if (strlen(_configPathRoot) == 0) { // if _configPathRoot not set
+	if (_configPathRoot.empty()) { // if _configPathRoot not set
 
 #ifdef LINUX_PORTABLE
 		if (portable_mode) {
@@ -2416,7 +2411,7 @@ int GetConfigPath(char *path, size_t size, const char *name)
 
 		return os_get_config_path(path, size, name);
 	} else {
-		snprintf(path, size, "%s", _configPathRoot);
+		snprintf(path, size, "%s", _configPathRoot.c_str());
 		strcat(path, name);
 		return strlen(path);
 	}
@@ -2425,7 +2420,7 @@ int GetConfigPath(char *path, size_t size, const char *name)
 
 char *GetConfigPathPtr(const char *name)
 {
-	if (strlen(_configPathRoot) == 0) {  // if _configPathRoot not set
+	if (_configPathRoot.empty()) { // if _configPathRoot not set
 #ifdef LINUX_PORTABLE
 		if (portable_mode) {
 			char path[512];
@@ -2442,10 +2437,8 @@ char *GetConfigPathPtr(const char *name)
 
 		return os_get_config_path_ptr(name);
 	} else {
-		char buf[CONFIG_PATH_MAX_LEN];
-		strcpy(buf, _configPathRoot);
-		strcat(buf, name);
-		char* ptr = alloc_bmem_cstr(buf);
+		std::string buf = _configPathRoot + std::string(name);
+		char* ptr = alloc_bmem_cstr(buf.c_str());
 
 		return ptr;
 	}
@@ -2846,6 +2839,23 @@ int main(int argc, char *argv[])
 	}
 #endif
 
+#ifdef _WIN32
+	// Extension: Unicode command line support for Windows
+	LPWSTR *wargv;
+	int wargc;
+	wargv = CommandLineToArgvW(GetCommandLineW(), &wargc);
+
+	std::vector<std::string> args_utf8;
+
+	for (int i=0; i<wargc; ++i) {
+		char* buff;
+		wchar_t* str = wargv[i];
+		os_wcs_to_utf8_ptr(str, wcslen(str), &buff);
+		args_utf8.push_back(std::string(buff));
+		bfree(buff);
+	}
+#endif
+
 	base_get_log_handler(&def_log_handler, nullptr);
 
 #if defined(USE_XDG) && defined(IS_UNIX)
@@ -2855,7 +2865,7 @@ int main(int argc, char *argv[])
 	obs_set_cmdline_args(argc, argv);
 
 	// buffer for the `--config-root` flag
-	char* _config_root_opt = nullptr;
+	std::string _config_root_opt = "";
 
 	for (int i = 1; i < argc; i++) {
 		if (arg_is(argv[i], "--portable", "-p")) {
@@ -2955,7 +2965,12 @@ int main(int argc, char *argv[])
 		// --- extended command line args --- //
 		} else if (arg_is(argv[i], "--config-root", nullptr)) {
 			if (++i < argc) {
-				_config_root_opt = argv[i];
+				#ifdef _WIN32
+					_config_root_opt = args_utf8[i];
+				#else
+					// On *nix systems, argv is UTF-8 which is what we need.
+					_config_root_opt = argv[i];
+				#endif
 			}
 		} else if (arg_is(argv[i], "--run-batch", nullptr)) {
 			if (++i < argc) {
@@ -2964,7 +2979,12 @@ int main(int argc, char *argv[])
 		} else if (arg_is(argv[i], "--config-override", nullptr)) {
 			if (++i < argc) {
 				// format: Video,OutputCX,integer,1920 with lines separated by ';'.
-				_config_override_str = argv[i];
+				#ifdef _WIN32
+					_config_override_str = args_utf8[i];
+				#else
+					// On *nix systems, argv is UTF-8 which is what we need.
+					_config_override_str = argv[i];
+				#endif
 			}
 		} else if (arg_is(argv[i], "--cwd", nullptr)) {
 			if (++i < argc) {
@@ -2998,8 +3018,8 @@ int main(int argc, char *argv[])
 #endif
 
 	// EXTENSION: override config path if defined.
-	if (_config_root_opt) {
-		SetConfigPathRoot(_config_root_opt);
+	if (!_config_root_opt.empty()) {
+		SetConfigPathRoot(_config_root_opt.c_str());
 	}
 
 	upgrade_settings();

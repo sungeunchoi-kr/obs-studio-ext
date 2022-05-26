@@ -9219,6 +9219,12 @@ void OBSBasic::SetShowing(bool showing)
 #endif
 
 	} else if (showing && !isVisible()) {
+		bool neverShow = config_get_bool(
+			App()->GlobalConfig(), "BasicWindow", "NeverShowWindow");
+		if (neverShow) {
+			return;
+		}
+
 		if (showHide)
 			showHide->setText(QTStr("Basic.SystemTray.Hide"));
 		QTimer::singleShot(0, this, SLOT(show()));
@@ -9297,48 +9303,54 @@ void OBSBasic::SystemTrayInit()
 		trayIcon.data());
 	exit = new QAction(QTStr("Exit"), trayIcon.data());
 
-	trayMenu = new QMenu;
-	previewProjector = new QMenu(QTStr("PreviewProjector"));
-	studioProgramProjector = new QMenu(QTStr("StudioProgramProjector"));
-	AddProjectorMenuMonitors(previewProjector, this,
-				 SLOT(OpenPreviewProjector()));
-	AddProjectorMenuMonitors(studioProgramProjector, this,
-				 SLOT(OpenStudioProgramProjector()));
-	trayMenu->addAction(showHide);
-	trayMenu->addSeparator();
-	trayMenu->addMenu(previewProjector);
-	trayMenu->addMenu(studioProgramProjector);
-	trayMenu->addSeparator();
-	trayMenu->addAction(sysTrayStream);
-	trayMenu->addAction(sysTrayRecord);
-	trayMenu->addAction(sysTrayReplayBuffer);
-	trayMenu->addAction(sysTrayVirtualCam);
-	trayMenu->addSeparator();
-	trayMenu->addAction(exit);
-	trayIcon->setContextMenu(trayMenu);
-	trayIcon->show();
+	bool noTrayMenu = config_get_bool(+App()->GlobalConfig(), "BasicWindow",
+					 "NoTrayMenu");
+	if (!noTrayMenu) {
+		trayMenu = new QMenu;
+		previewProjector = new QMenu(QTStr("PreviewProjector"));
+		studioProgramProjector = new QMenu(QTStr("StudioProgramProjector"));
+		AddProjectorMenuMonitors(previewProjector, this,
+					 SLOT(OpenPreviewProjector()));
+		AddProjectorMenuMonitors(studioProgramProjector, this,
+					 SLOT(OpenStudioProgramProjector()));
+		trayMenu->addAction(showHide);
+		trayMenu->addSeparator();
+		trayMenu->addMenu(previewProjector);
+		trayMenu->addMenu(studioProgramProjector);
+		trayMenu->addSeparator();
+		trayMenu->addAction(sysTrayStream);
+		trayMenu->addAction(sysTrayRecord);
+		trayMenu->addAction(sysTrayReplayBuffer);
+		trayMenu->addAction(sysTrayVirtualCam);
+		trayMenu->addSeparator();
+		trayMenu->addAction(exit);
+		trayIcon->setContextMenu(trayMenu);
+		trayIcon->show();
 
-	if (outputHandler && !outputHandler->replayBuffer)
-		sysTrayReplayBuffer->setEnabled(false);
+		if (outputHandler && !outputHandler->replayBuffer)
+			sysTrayReplayBuffer->setEnabled(false);
 
-	sysTrayVirtualCam->setEnabled(vcamEnabled);
+		sysTrayVirtualCam->setEnabled(vcamEnabled);
+	}
 
 	if (Active())
 		OnActivate(true);
 
-	connect(trayIcon.data(),
-		SIGNAL(activated(QSystemTrayIcon::ActivationReason)), this,
-		SLOT(IconActivated(QSystemTrayIcon::ActivationReason)));
-	connect(showHide, SIGNAL(triggered()), this, SLOT(ToggleShowHide()));
-	connect(sysTrayStream, SIGNAL(triggered()), this,
-		SLOT(on_streamButton_clicked()));
-	connect(sysTrayRecord, SIGNAL(triggered()), this,
-		SLOT(on_recordButton_clicked()));
-	connect(sysTrayReplayBuffer.data(), &QAction::triggered, this,
-		&OBSBasic::ReplayBufferClicked);
-	connect(sysTrayVirtualCam.data(), &QAction::triggered, this,
-		&OBSBasic::VCamButtonClicked);
-	connect(exit, SIGNAL(triggered()), this, SLOT(close()));
+	if (!noTrayMenu) {
+		connect(trayIcon.data(),
+			SIGNAL(activated(QSystemTrayIcon::ActivationReason)), this,
+			SLOT(IconActivated(QSystemTrayIcon::ActivationReason)));
+		connect(showHide, SIGNAL(triggered()), this, SLOT(ToggleShowHide()));
+		connect(sysTrayStream, SIGNAL(triggered()), this,
+			SLOT(on_streamButton_clicked()));
+		connect(sysTrayRecord, SIGNAL(triggered()), this,
+			SLOT(on_recordButton_clicked()));
+		connect(sysTrayReplayBuffer.data(), &QAction::triggered, this,
+			&OBSBasic::ReplayBufferClicked);
+		connect(sysTrayVirtualCam.data(), &QAction::triggered, this,
+			&OBSBasic::VCamButtonClicked);
+		connect(exit, SIGNAL(triggered()), this, SLOT(close()));
+	}
 }
 
 void OBSBasic::IconActivated(QSystemTrayIcon::ActivationReason reason)

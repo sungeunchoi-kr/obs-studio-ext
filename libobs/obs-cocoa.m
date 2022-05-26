@@ -1611,13 +1611,13 @@ static void input_method_changed(CFNotificationCenterRef nc, void *observer,
 
 bool obs_hotkeys_platform_init(struct obs_core_hotkeys *hotkeys)
 {
-	CFNotificationCenterAddObserver(
-		CFNotificationCenterGetDistributedCenter(), hotkeys,
-		input_method_changed,
-		kTISNotifySelectedKeyboardInputSourceChanged, NULL,
-		CFNotificationSuspensionBehaviorDeliverImmediately);
+//	CFNotificationCenterAddObserver(
+//		CFNotificationCenterGetDistributedCenter(), hotkeys,
+//		input_method_changed,
+//		kTISNotifySelectedKeyboardInputSourceChanged, NULL,
+//		CFNotificationSuspensionBehaviorDeliverImmediately);
 
-	input_method_changed(NULL, hotkeys, NULL, NULL, NULL);
+//	input_method_changed(NULL, hotkeys, NULL, NULL, NULL);
 	return hotkeys->platform_context != NULL;
 }
 

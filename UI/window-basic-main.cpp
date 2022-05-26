@@ -322,9 +322,11 @@ OBSBasic::OBSBasic(QWidget *parent)
 	connect(ui->preview, &OBSQTDisplay::DisplayResized, displayResize);
 
 	delete shortcutFilter;
-	//shortcutFilter = CreateShortcutFilter();
-	//installEventFilter(shortcutFilter);
-
+#ifdef _WIN32
+	shortcutFilter = CreateShortcutFilter();
+	installEventFilter(shortcutFilter);
+#endif
+    
 	stringstream name;
 	name << "OBS " << App()->GetVersionString();
 	blog(LOG_INFO, "%s", name.str().c_str());
@@ -1991,7 +1993,9 @@ void OBSBasic::OBSInit(std::string configOverrideStr)
 	blog(LOG_INFO, STARTUP_SEPARATOR);
 
 	ResetOutputs();
-	//CreateHotkeys();
+#ifdef _WIN32
+	CreateHotkeys();
+#endif
 
 	if (!InitService())
 		throw "Failed to initialize service";

@@ -978,9 +978,11 @@ static inline bool obs_init_hotkeys(void)
 	hotkeys->sceneitem_show = bstrdup("Show '%1'");
 	hotkeys->sceneitem_hide = bstrdup("Hide '%1'");
 
-	//if (!obs_hotkeys_platform_init(hotkeys))
-	//	return false;
-
+#ifdef _WIN32
+	if (!obs_hotkeys_platform_init(hotkeys))
+		return false;
+#endif
+    
 	if (pthread_mutex_init_recursive(&hotkeys->mutex) != 0)
 		goto fail;
 
@@ -1072,8 +1074,10 @@ static bool obs_init(const char *locale, const char *module_config_path,
 		return false;
 	if (!obs_init_handlers())
 		return false;
-	//if (!obs_init_hotkeys())
-	//	return false;
+#ifdef _WIN32
+	if (!obs_init_hotkeys())
+		return false;
+#endif
 
 	obs->destruction_task_thread = os_task_queue_create();
 	if (!obs->destruction_task_thread)
